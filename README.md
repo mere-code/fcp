@@ -8,7 +8,7 @@
 
 | 包名 | 定制版本 | 上游基线 | 定制原因 |
 | --- | --- | --- | --- |
-| `svgaplayer_flutter` | `2.2.0+merecode.1` | [`yyued/SVGAPlayer-Flutter@a1c6d55`](https://github.com/yyued/SVGAPlayer-Flutter/commit/a1c6d5580eb5cce267a652a670726403b4091f03) | 使用 `http` 1.2.2，并兼容当前 Dart/Flutter 工具链。 |
+| `svgaplayer_flutter` | `2.2.0+merecode.2` | [`yyued/SVGAPlayer-Flutter@a1c6d55`](https://github.com/yyued/SVGAPlayer-Flutter/commit/a1c6d5580eb5cce267a652a670726403b4091f03) | 使用 `http` 1.2.2，兼容当前工具链，并修复动画时长与内嵌图片内存问题。 |
 
 每个包保留原始包名，以便替换现有依赖。包内的 `FORK.md`记录上游基线和全部定制差异。
 
@@ -21,7 +21,7 @@ dependencies:
   svgaplayer_flutter:
     git:
       url: https://github.com/mere-code/fcp.git
-      ref: svgaplayer_flutter-v2.2.0-merecode.1
+      ref: svgaplayer_flutter-v2.2.0-merecode.2
       path: packages/svgaplayer_flutter
 ```
 

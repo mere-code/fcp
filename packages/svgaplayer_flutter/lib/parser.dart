@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:ui' as ui;
-import 'dart:typed_data' show Uint8List;
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show Uint8List, kReleaseMode;
 import 'package:flutter/painting.dart' show decodeImageFromList;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' show get;
@@ -11,9 +10,24 @@ import 'proto/svga.pbserver.dart';
 
 const _filterKey = 'SVGAParser';
 
+typedef SVGAImageDecoder = Future<ui.Image> Function(Uint8List bytes);
+typedef SVGAImageDisposer = void Function(ui.Image image);
+
+void _disposeImage(ui.Image image) => image.dispose();
+
 /// You use SVGAParser to load and decode animation files.
 class SVGAParser {
-  const SVGAParser();
+  const SVGAParser({
+    this.imageDecoder = decodeImageFromList,
+    this.imageDisposer = _disposeImage,
+  });
+
+  /// Decodes embedded bitmap bytes. Injectable to support deterministic tests.
+  final SVGAImageDecoder imageDecoder;
+
+  /// Releases decoded bitmaps that cannot be delivered after a parse failure.
+  final SVGAImageDisposer imageDisposer;
+
   static const shared = SVGAParser();
 
   /// Download animation file from remote server, and decode it.
@@ -34,7 +48,7 @@ class SVGAParser {
       timeline = TimelineTask(filterKey: _filterKey)
         ..start('DecodeFromBuffer', arguments: {'length': bytes.length});
     }
-    final inflatedBytes = archive.ZLibDecoder().decodeBytes(bytes);
+    final inflatedBytes = const archive.ZLibDecoder().decodeBytes(bytes);
     if (timeline != null) {
       timeline.instant('MovieEntity.fromBuffer()',
           arguments: {'inflatedLength': inflatedBytes.length});
@@ -53,10 +67,10 @@ class SVGAParser {
   }
 
   MovieEntity _processShapeItems(MovieEntity movieItem) {
-    movieItem.sprites.forEach((sprite) {
+    for (final sprite in movieItem.sprites) {
       List<ShapeEntity>? lastShape;
-      sprite.frames.forEach((frame) {
-        if (frame.shapes.isNotEmpty && frame.shapes.length > 0) {
+      for (final frame in sprite.frames) {
+        if (frame.shapes.isNotEmpty) {
           if (frame.shapes[0].type == ShapeEntity_ShapeType.KEEP &&
               lastShape != null) {
             frame.shapes = lastShape;
@@ -64,27 +78,38 @@ class SVGAParser {
             lastShape = frame.shapes;
           }
         }
-      });
-    });
+      }
+    }
     return movieItem;
   }
 
   Future<MovieEntity> _prepareResources(MovieEntity movieItem,
-      {TimelineTask? timeline}) {
+      {TimelineTask? timeline}) async {
     final images = movieItem.images;
-    if (images.isEmpty) return Future.value(movieItem);
-    return Future.wait(images.entries.map((item) async {
-      // result null means a decoding error occurred
-      final decodeImage = await _decodeImageItem(
-          item.key, Uint8List.fromList(item.value),
-          timeline: timeline);
-      if (decodeImage != null) {
-        movieItem.bitmapCache[item.key] = decodeImage;
+    if (images.isEmpty) return movieItem;
+
+    final decodedImages = <String, ui.Image>{};
+    try {
+      for (final item in images.entries) {
+        decodedImages[item.key] = await _decodeImageItem(
+          item.key,
+          Uint8List.fromList(item.value),
+          timeline: timeline,
+        );
       }
-    })).then((_) => movieItem);
+    } catch (_) {
+      for (final image in decodedImages.values) {
+        imageDisposer(image);
+      }
+      rethrow;
+    }
+
+    movieItem.bitmapCache.addAll(decodedImages);
+    images.clear();
+    return movieItem;
   }
 
-  Future<ui.Image?> _decodeImageItem(String key, Uint8List bytes,
+  Future<ui.Image> _decodeImageItem(String key, Uint8List bytes,
       {TimelineTask? timeline}) async {
     TimelineTask? task;
     if (!kReleaseMode) {
@@ -92,7 +117,7 @@ class SVGAParser {
         ..start('DecodeImage', arguments: {'key': key, 'length': bytes.length});
     }
     try {
-      final image = await decodeImageFromList(bytes);
+      final image = await imageDecoder(bytes);
       if (task != null) {
         task.finish(
           arguments: {'imageSize': '${image.width}x${image.height}'},
@@ -103,19 +128,7 @@ class SVGAParser {
       if (task != null) {
         task.finish(arguments: {'error': '$e', 'stack': '$stack'});
       }
-      assert(() {
-        FlutterError.reportError(FlutterErrorDetails(
-          exception: e,
-          stack: stack,
-          library: 'svgaplayer',
-          context: ErrorDescription('during prepare resource'),
-          informationCollector: () sync* {
-            yield ErrorSummary('Decoding image failed.');
-          },
-        ));
-        return true;
-      }());
-      return null;
+      Error.throwWithStackTrace(e, stack);
     }
   }
 }

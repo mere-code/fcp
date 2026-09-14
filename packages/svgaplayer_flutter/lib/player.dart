@@ -60,7 +60,12 @@ class SVGAAnimationController extends AnimationController {
 
   SVGAAnimationController({
     required TickerProvider vsync,
-  }) : super(vsync: vsync, duration: Duration.zero);
+    AnimationBehavior animationBehavior = AnimationBehavior.preserve,
+  }) : super(
+          vsync: vsync,
+          duration: Duration.zero,
+          animationBehavior: animationBehavior,
+        );
 
   set videoItem(MovieEntity? value) {
     assert(!_isDisposed, '$this has been disposed!');
