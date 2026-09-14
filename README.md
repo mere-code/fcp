@@ -1,6 +1,8 @@
 # Mere Code Flutter Forks
 
-用于维护 Flutter 定制包的私有 Monorepo。仓库中的包均基于上游版本，仅保留业务所需的必要改动。
+[English](README.en.md)
+
+用于维护 Flutter 定制包的公开 Monorepo。仓库中的包均基于上游版本，仅保留业务所需的必要改动。
 
 ## 包列表
 
@@ -12,13 +14,13 @@
 
 ## 引用包
 
-本仓库为 GitHub 私有仓库，使用方需要具备 `mere-code`账户的 SSH 访问权限。本机配置 SSH 别名后，在项目中添加：
+本仓库为 GitHub 公开仓库。通过 HTTPS 引用时，无需配置 SSH Key 或其他读取凭据：
 
 ```yaml
 dependencies:
   svgaplayer_flutter:
     git:
-      url: git@github-mere-code:mere-code/fcp.git
+      url: https://github.com/mere-code/fcp.git
       ref: svgaplayer_flutter-v2.2.0-merecode.1
       path: packages/svgaplayer_flutter
 ```
