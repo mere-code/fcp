@@ -1,0 +1,23 @@
+name: svgaplayer_flutter_example
+description: Demonstrates how to use the svgaplayer_flutter plugin.
+publish_to: none
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  svgaplayer_flutter:
+    path: ../
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/pin_jump.svga
+    - assets/angel.svga

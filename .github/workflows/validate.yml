@@ -1,0 +1,29 @@
+name: 代码验证
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 配置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.24.5
+          channel: stable
+          cache: true
+      - name: 安装仓库工具
+        run: dart pub get
+      - name: 初始化所有包
+        run: dart run melos bootstrap
+      - name: 静态分析
+        run: dart run melos run analyze
+      - name: 运行测试
+        run: dart run melos run test

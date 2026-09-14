@@ -1,0 +1,24 @@
+# Dart and Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+pubspec.lock
+
+# Android and Apple build output
+.gradle/
+local.properties
+**/android/key.properties
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/macos/Pods/
+**/DerivedData/
+
+# IDE and operating system
+.idea/
+.vscode/
+*.iml
+.DS_Store

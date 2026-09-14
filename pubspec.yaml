@@ -1,0 +1,10 @@
+name: merecode_flutter_forks
+description: 用于维护 Flutter 定制包的私有 Monorepo。
+publish_to: none
+version: 0.0.0
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dev_dependencies:
+  melos: 6.3.2

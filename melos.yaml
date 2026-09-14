@@ -1,0 +1,12 @@
+name: merecode_flutter_forks
+
+packages:
+  - packages/*
+
+scripts:
+  analyze:
+    run: melos exec -- flutter analyze --no-fatal-infos
+    description: 对所有包执行静态分析。
+  test:
+    run: melos exec --dir-exists=test -- flutter test
+    description: 对包含 test 目录的包执行测试。
