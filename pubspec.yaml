@@ -1,5 +1,5 @@
 name: merecode_flutter_forks
-description: 用于维护 Flutter 定制包的私有 Monorepo。
+description: 用于维护 Flutter 定制包的公开 Monorepo。
 publish_to: none
 version: 0.0.0
 
