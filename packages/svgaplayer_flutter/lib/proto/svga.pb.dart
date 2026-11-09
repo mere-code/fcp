@@ -1768,6 +1768,8 @@ class MovieEntity extends $pb.GeneratedMessage {
   bool autorelease = true;
   SVGADynamicEntity dynamicItem = SVGADynamicEntity();
   Map<String, ui.Image> bitmapCache = {};
+  /// Raw audio bytes keyed by [AudioEntity.audioKey], retained after images are cleared.
+  Map<String, List<int>> audioCache = {};
   Map<String, ui.Path> pathCache = {};
 
   void dispose() {
@@ -1775,6 +1777,7 @@ class MovieEntity extends $pb.GeneratedMessage {
       element.dispose();
     });
     bitmapCache.clear();
+    audioCache.clear();
     pathCache.clear();
   }
 }

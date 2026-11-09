@@ -1,6 +1,13 @@
 import 'dart:developer';
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart' show Uint8List, kReleaseMode;
+import 'package:flutter/foundation.dart'
+    show
+        ErrorDescription,
+        FlutterError,
+        FlutterErrorDetails,
+        Uint8List,
+        kDebugMode,
+        kReleaseMode;
 import 'package:flutter/painting.dart' show decodeImageFromList;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' show get;
@@ -25,7 +32,7 @@ class SVGAParser {
   /// Decodes embedded bitmap bytes. Injectable to support deterministic tests.
   final SVGAImageDecoder imageDecoder;
 
-  /// Releases decoded bitmaps that cannot be delivered after a parse failure.
+  /// Releases decoded bitmaps if they cannot be added to the bitmap cache.
   final SVGAImageDisposer imageDisposer;
 
   static const shared = SVGAParser();
@@ -88,25 +95,80 @@ class SVGAParser {
     final images = movieItem.images;
     if (images.isEmpty) return movieItem;
 
+    final audioKeys = movieItem.audios.map((audio) => audio.audioKey).toSet();
+    for (final audioKey in audioKeys) {
+      final bytes = images[audioKey];
+      if (bytes != null && bytes.isNotEmpty) {
+        movieItem.audioCache[audioKey] = List<int>.from(bytes);
+      }
+    }
+
     final decodedImages = <String, ui.Image>{};
-    try {
-      for (final item in images.entries) {
+    for (final item in images.entries) {
+      final bytes = Uint8List.fromList(item.value);
+      if (bytes.isEmpty ||
+          audioKeys.contains(item.key) ||
+          !_looksLikeImage(bytes)) {
+        continue;
+      }
+
+      try {
         decodedImages[item.key] = await _decodeImageItem(
           item.key,
-          Uint8List.fromList(item.value),
+          bytes,
           timeline: timeline,
         );
+      } catch (error, stack) {
+        if (kDebugMode) {
+          FlutterError.reportError(FlutterErrorDetails(
+            exception: error,
+            stack: stack,
+            library: 'svgaplayer',
+            context:
+                ErrorDescription('while decoding image with key "${item.key}"'),
+          ));
+        }
       }
+    }
+
+    try {
+      movieItem.bitmapCache.addAll(decodedImages);
     } catch (_) {
       for (final image in decodedImages.values) {
         imageDisposer(image);
       }
       rethrow;
     }
-
-    movieItem.bitmapCache.addAll(decodedImages);
     images.clear();
     return movieItem;
+  }
+
+  bool _looksLikeImage(Uint8List bytes) {
+    if (bytes.length >= 4 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4e &&
+        bytes[3] == 0x47) {
+      return true;
+    }
+    if (bytes.length >= 2 && bytes[0] == 0xff && bytes[1] == 0xd8) {
+      return true;
+    }
+    if (bytes.length >= 3 &&
+        bytes[0] == 0x47 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46) {
+      return true;
+    }
+    return bytes.length >= 12 &&
+        bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50;
   }
 
   Future<ui.Image> _decodeImageItem(String key, Uint8List bytes,
